@@ -1,4 +1,12 @@
 from django.db import models
+from django.core.validators import FileExtensionValidator
+
+
+validate_extensions = FileExtensionValidator(
+    allowed_extensions=['csv', 'xls', 'xlsx'],
+    message='Seuls les fichiers CSV, Excel (XLS, XLSX) sont autorisés.'
+)
+
 
 # Create your models here.
 class Election(models.Model):
@@ -22,12 +30,12 @@ class Candidate(models.Model):
         unique_together = ('election', 'first_name','last_name')
     
     def __str__(self):
-        return self.name
+        return f"{self.first_name}  {self.last_name}"
     
 #Votant    
 class Voter(models.Model):
     email    = models.EmailField(unique=True)
-    is_valid = models.BooleanField(default=False)   
+    # is_valid = models.BooleanField(default=False)   
     otp      = models.CharField(max_length=100)
     # token = models.CharField(max_length=100, unique=True)
     # has_voted = models.BooleanField(default=False)
@@ -51,3 +59,9 @@ class Subscribe(models.Model):
         return f"{self.voter.email} voted for {self.election.name}"
 
 
+class BatchEmail(models.Model):
+    fichier = models.FileField(upload_to='documents/',
+        validators=[validate_extensions])
+
+    def __str__(self):
+        return self.fichier.name

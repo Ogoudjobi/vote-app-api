@@ -2,8 +2,22 @@ from rest_framework import serializers
 from django.core.mail import send_mail
 import pyotp
 import secrets
+import os
 from datetime import date
 from voteapp.models import *
+from voteproject.settings import MEDIA_ROOT
+
+def verifier_extension(fichier):
+    extension = os.path.splitext(fichier)[1].lower()  # Obtenir l'extension du fichier en minuscules
+    extensions_acceptees = ['.xls', '.xlsx', '.csv']  # Extensions autorisées
+    
+    if extension  in ['.xls', '.xlsx']:
+        return "EXCEL"
+    elif extension == '.csv':
+        return "CSV"
+    else :
+        return False
+
 
 def token_vote ():
     return secrets.token_urlsafe(8)
@@ -59,9 +73,8 @@ class VoterSerializer(serializers.ModelSerializer):
         voter.otp = otp[1]
         
         # Envoyer l'e-mail de vérification
-        sujet = 'Vérification de votre adresse e-mail'
-        message = f'''Bonjour ! Merci d'avoir enregistré votre adresse e-mail pour participer a l'election.\nVeuillez cliquer sur le lien() pour vérifier votre adresse mail avec le code suivant :
-        {otp[0]}'''
+        sujet = "   NOTIFICATION D'INSCRIPTION"
+        message = f'''Bonjour ! Vous avez bien été enregistré sur la liste electorale  '''
         de = 'adsa.vote@gmail.com'  # Remplacez par votre adresse e-mail
         a = [email]  # Adresse e-mail de l'utilisateur
 
@@ -79,7 +92,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
     has_voted = serializers.SerializerMethodField() 
     
     class Meta:
-        model = Subscribe
+        model = Subscribe   
         fields = ['voter', 'election', 'token', 'has_voted', 'vote_date']
         read_only_fields = ['token', 'vote_time', 'has_voted']
         unique_together = ('election', 'voter')
@@ -89,7 +102,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
         voter = validated_data.get('voter')
         election = validated_data.get('election')
         
-
+        
         # Enregistrer l'email dans la base de données
         vote = Subscribe.objects.create(**validated_data)
         # vote.has_voted = False
@@ -114,7 +127,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
         return False 
     
     
-
+@DeprecationWarning
 class ValidateOTPSerializer(serializers.Serializer):
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=100)  # Supposons que l'OTP a une longueur maximale de 6 caractères
@@ -164,19 +177,48 @@ class VoteSerializer(serializers.Serializer):
         # Enregistrer l'email dans la base de données
         subscribe = Subscribe.objects.get(token=token, election=election)
         if subscribe.has_voted:
-            raise serializers.ValidationError(f"Vous avez déja voté pour : {election.name}")
-        candidate.vote_count += 1
-        candidate.save()
-        
-        subscribe.has_voted = True
-        subscribe.vote_date = date.today()
-        subscribe.save()
+            raise serializers.ValidationError(f"Vous avez déja voté pour : {election.name}")    
+        else:
+            candidate.vote_count += 1
+            candidate.save()
+            
+            subscribe.has_voted = True
+            subscribe.vote_date = date.today()
+            subscribe.save()
 
-        # Envoyer l'e-mail de vérification
-        sujet = f'CONFIRMATION DE VOTE : {election.name.upper()}'
-        message = f'''Votre vote a bien été pris en compte pour {election.name} '''
-        de = 'adsa.vote@gmail.com'  # Remplacez par votre adresse e-mail
-        a = [subscribe.voter.email]  # Adresse e-mail de l'utilisateur
+            # Envoyer l'e-mail de vérification
+            sujet = f'CONFIRMATION DE VOTE : {election.name.upper()}'
+            message = f'''Votre vote a bien été pris en compte pour {election.name} '''
+            de = 'adsa.vote@gmail.com'  # Remplacez par votre adresse e-mail
+            a = [subscribe.voter.email]  # Adresse e-mail de l'utilisateur
 
-        send_mail(sujet, message, de, a, fail_silently=False)
+            send_mail(sujet, message, de, a, fail_silently=False)
         return attrs
+    
+    
+class BatchEmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BatchEmail
+        fields = '__all__' 
+        
+    def create(self, validated_data):
+        import pandas as pd
+        # Une fois les données validées, accédez au champ 'fichier' pour obtenir le chemin d'accès
+        fichier = validated_data.get('fichier')
+        fichier_ = super().create(validated_data)
+        chemin_acces = os.path.join(MEDIA_ROOT,'documents',fichier.name)
+        # Autres opérations après validation et accès au chemin du fichier
+        # ...
+        extension = verifier_extension(chemin_acces)
+        if extension == "EXCEL":
+            df = pd.read_excel(chemin_acces).iloc[:,0]
+        elif extension == "CSV":
+            df = pd.read_csv(chemin_acces, sep=';').iloc[:,0]
+            
+        for email in df:
+            voter_serializer = VoterSerializer(data = {"email": email})
+            if voter_serializer.is_valid():
+                voter_instance = voter_serializer.save()
+
+        return fichier_
+    

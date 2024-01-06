@@ -67,3 +67,18 @@ class VoteCreateAPIView(APIView):
             # Renvoie une réponse appropriée si le vote a été enregistré avec succès
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+class BatchEmailViewSet(viewsets.ModelViewSet):
+    queryset = BatchEmail.objects.all()
+    serializer_class = BatchEmailSerializer
+
+    def create(self, request, *args, **kwargs):
+        # Récupérer les données de la requête POST
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Valider et enregistrer le vote
+        serializer.save()  # Cela dépendra de la logique de votre application pour enregistrer le vote
+        
+        return Response(serializer.data)

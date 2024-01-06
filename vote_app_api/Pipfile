@@ -13,6 +13,9 @@ django-rest-swagger = "*"
 django-rest-knox = "*"
 pyotp = "*"
 pillow = "*"
+gunicorn = "*"
+pandas = "*"
+openpyxl = "*"
 
 [dev-packages]
 

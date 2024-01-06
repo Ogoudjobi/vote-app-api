@@ -27,6 +27,7 @@ router.register(r'elections', ElectionViewSet)
 router.register(r'voters', VoterViewSet)
 router.register(r'candidates', CandidateViewSet)
 router.register(r'subscribe-election', SubscribeViewSet)
+router.register(r'batch-email', BatchEmailViewSet)
 
 
 
@@ -34,7 +35,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # Autres URLs du projet
     path('api/', include(router.urls)),
-    path('api/validate-otp/', ValidateOTPView.as_view(), name='validate_otp'),  # Associez votre vue à une URL
+    # path('api/validate-otp/', ValidateOTPView.as_view(), name='validate_otp'),  # Associez votre vue à une URL
     path('api/vote/', VoteCreateAPIView.as_view(), name='vote'),  # Associez votre vue à une URL
     path('api/subscribe-election/<str:voter_id>/', subscribe_election, name='subscribe_election')
 
