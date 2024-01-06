@@ -174,7 +174,7 @@ class VoteSerializer(serializers.Serializer):
 
         # Envoyer l'e-mail de vérification
         sujet = f'CONFIRMATION DE VOTE : {election.name.upper()}'
-        message = f'''Votre vote a bien été pris en compte pour {election.name} : {token}'''
+        message = f'''Votre vote a bien été pris en compte pour {election.name} '''
         de = 'adsa.vote@gmail.com'  # Remplacez par votre adresse e-mail
         a = [subscribe.voter.email]  # Adresse e-mail de l'utilisateur
 
